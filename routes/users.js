@@ -1,19 +1,30 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-//const passport = require('passport');
+const passport = require('passport');
 const router = express.Router();
 
 // Load User Model
 require('../models/User');
 const User = mongoose.model('users');
 
+// User Login Route
 router.get('/login', (req, res) => {
     res.render('users/login')
 });
 
+// User Register Route
 router.get('/register', (req, res) => {
     res.render('users/register')
+});
+
+//Login Form POST
+router.post('/login', (req, res, next) => {
+    passport.authenticate('local', {
+        successRedirect: '/ideas',
+        failureRedirect: '/users/login',
+        failureFlash: true
+    })(req, res, next);
 });
 
 //Register Form POST
@@ -28,10 +39,14 @@ router.post('/register', (req, res) => {
     if (req.body.password.length < 4) {
         errors.push({text: 'Password must be at least 4 characters'});
     }
+    
+    User.findOne({email: req.body.email}, (error, result) => {
+        if (error) errors.push('There was an error. Please try again');
 
-    if (User.findOne({email: req.body.email})) {
-        errors.push({text: 'Duplicate email. Already registered'})
-    }
+        if (result) {
+            errors.push('Duplicate email. Already registered')
+        }
+    });
 
     if (errors.length > 0) {
         res.render('users/register', {
@@ -59,7 +74,7 @@ router.post('/register', (req, res) => {
                         res.redirect('/users/login');
                     })
                     .catch (err => {
-                        console.log(err);
+                        console.log("1: " + err);
                         return;
                     });
             });
